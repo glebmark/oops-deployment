@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-agent
+  namespace: cluster-agent
+  labels:
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/part-of: cluster-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cluster-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cluster-agent
+        app.kubernetes.io/part-of: cluster-registry
+    spec:
+      serviceAccountName: cluster-agent
+      automountServiceAccountToken: true
+      containers:
+      - name: agent
+        image: glebmark/cluster-agent:dev
+        imagePullPolicy: Always
+        env:
+        - name: AGENT_API_URL
+          valueFrom:
+            secretKeyRef:
+              name: cluster-agent
+              key: api-url
+        - name: AGENT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cluster-agent
+              key: agent-token
+        - name: AGENT_COLLECT_INTERVAL
+          value: "5m"
+        - name: AGENT_LOG_LEVEL
+          value: "debug"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ "ALL" ]
+      restartPolicy: Always
